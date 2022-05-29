@@ -34,8 +34,8 @@
 //7. Acceptance filter: reduces interrupt overhead. There are 28 filter banks. and each bank have two regitsters.
 // Accept frames only if first 3 msb bits of the standard indenifier are 1s
 // Filter bank 0: FB0_R1 : configurre as Mask mode
-// Idenfifier register: 111xxxxxxxx(32:21) : fb0_r1
-// Mask register: 111xxxxxxxx(32:21) : fb1_r1
+// Idenfifier register: 111xxxxxxxx(32:21) : fb0_r1 (filter_id_high:filter_id_low)
+// Mask register: 111xxxxxxxx(32:21) : fb1_r1 (filter_mask_id_high:filter_mask_id_low)
 
 //Accept frame only if first 3 msb bits are 0 and first 2 lsbs are 1.
 //Identifier: 000xxxxxx11 : mask mode
@@ -129,7 +129,25 @@ void CAN_Tx()
 	}
 
 	//while (HAL_CAN_IsTxMessagePending(&hcan,TxMailbox)); //waits unitll it transmit // polling mode
+}
 
+void CAN_Tx_Request()
+{
+	CAN_TxHeaderTypeDef TxHeader;
+	uint32_t TxMailbox = 0;
+	uint8_t message[5] = {1,2,3,4,5};//no meaning of data in case of data frame
+
+	TxHeader.DLC = 2; //request two bytes of reply
+	TxHeader.StdId = 0x780;
+	TxHeader.IDE = CAN_ID_STD;
+	TxHeader.RTR = CAN_RTR_REMOTE;
+
+	if (HAL_CAN_AddTxMessage(&hcan,&TxHeader,&message[0],&TxMailbox) != HAL_OK)
+	{
+		//Error_handler();
+	}
+
+	//while (HAL_CAN_IsTxMessagePending(&hcan,TxMailbox)); //waits unitll it transmit // polling mode
 }
 
 //void CAN_Rx()
@@ -187,10 +205,21 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		//handle the error
 	}
+	if (RxHeader.StdId == 0x700 && RxHeader.RTR == 0)
+	{
+		//this is a data frame
+		//do something using rcvd_data
+	}
+	else if (RxHeader.StdId == 0x710 && RxHeader.RTR == 1)
+	{
+		//this is a remote frame
+		//send response
+	}
+
 }
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 {
-
+//handle the error
 }
 
 /* USER CODE END 0 */
